@@ -2308,7 +2308,13 @@ Module MOD_grid_preprocess
                 end do 
 
                 ! 如果从2到num_iter都没有找到符合条件的，则报错
-                if (.not. found) STOP "ERROR! this do-loop must exit when find we want in SUBROUTINE GetSortNew"
+                if (.not. found) then
+                    print*, "i = ", i
+                    print*, "num_inter = ", num_inter
+                    print*, "ngrwm_temp1 = ", ngrwm_temp1
+                    STOP "ERROR! this do-loop must exit when find we want in SUBROUTINE GetSortNew"
+                end if
+
             end do
 
             ! 判断ngrwm_temp2的方向是逆时针还是顺时针，并统一为逆时针

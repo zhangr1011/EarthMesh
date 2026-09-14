@@ -486,7 +486,7 @@ contains
     subroutine gridfile_write()
         ! Does not calculate dismm and disww because they are not used.
         use netcdf
-        use consts_coms, only : r8, pathlen, io6, file_dir, EXPNME, NXP, mode_grid, refine, step ! Global constants and parameters
+        use consts_coms, only : r8, pathlen, io6, file_dir, CASENAME, NXP, mode_grid, refine, step ! Global constants and parameters
         use mem_ijtabs, only : mloops, itab_m, itab_w                                            ! Neighbor tables for M (cell centers) and W (vertices) points
                                                                                                 ! itab_m(im)%iw(1:3) are vertices of triangle 'im'
                                                                                                 ! itab_w(iw)%im(1:7) are cells surrounding vertex 'iw' (up to 7 for hex)

@@ -8,7 +8,7 @@
 ! 2025.06.10  Rui Zhang @ SYSU (original version)
 
 MODULE MOD_utilities
-   USE consts_coms, only: r8, pathlen, nxp, piu180_r8, file_dir, mask_patch_on
+   USE consts_coms, only: r8, pathlen, nxp, piu180_r8, file_dir, mask_patch_on, casename
    use netcdf ! For NF90_NOERR and NF90_STRERROR
    implicit none
    public :: CHECK
@@ -228,7 +228,7 @@ MODULE MOD_utilities
    END SUBROUTINE FVCOM_Mesh_Read
    
    SUBROUTINE FVCOM_Mesh_Save(ustr_points, ustr_bounds, ustr_vertex, ustr_ngr_center)
-      ! 生成用于FVCOMmesh常用的2dm形式，以及对应的dep.dat/grd.dat/cor.dat形式才ok！！！
+      ! 生成用于FVCOMmesh常用的2dm形式，以及对应的.dat形式
       IMPLICIT NONE
       integer, intent(in) :: ustr_points, ustr_bounds
       real(r8), allocatable, intent(in) :: ustr_vertex(:, :)
@@ -236,8 +236,8 @@ MODULE MOD_utilities
       integer :: i
       integer :: unit_number = 10
 
-      ! write fvcom.2dm
-      open(unit=unit_number, file=trim(file_dir)// 'result/fvcom.2dm', status='replace', action='write')
+      ! write casename.2dm
+      open(unit=unit_number, file=trim(file_dir)// 'result/'//trim(casename)//'.2dm', status='replace', action='write')
 
       ! 写入数据
       write(unit_number, '(A)') 'MESH2D'
@@ -251,40 +251,62 @@ MODULE MOD_utilities
                               ustr_ngr_center(3, i) - 1, 1
       end do
 
-      ! 写入 ND 数据 ! 默认水深为0
+      ! 写入 ND 数据 ! 默认水深为-99999.9, 需要自行修改
       do i = 2, ustr_bounds, 1
          write(unit_number, '(A, 1X, I0, 3(1X, F0.6))') 'ND', i - 1, &
-                              ustr_vertex(i, 1), ustr_vertex(i, 2), 0.0
+                              ustr_vertex(i, 1), ustr_vertex(i, 2), -99999.9
       end do         
 
       close(unit_number)
 
-      ! write cor.dat
-      open(unit=unit_number, file=trim(file_dir)// 'result/cor.dat', status='replace', action='write')
+      ! write casename_cor.dat
+      open(unit=unit_number, file=trim(file_dir)// 'result/'//trim(casename)//'_cor.dat', status='replace', action='write')
       write(unit_number, '(A, I0)') 'Node Number = ', ustr_bounds - 1
       do i = 2, ustr_bounds, 1
-         write(unit_number, '(3(1X, F0.6))') ustr_vertex(i, 1), ustr_vertex(i, 2), ustr_vertex(i, 2)
+         write(unit_number, '(F0.6, 2(1X, F0.6))') ustr_vertex(i, 1), ustr_vertex(i, 2), ustr_vertex(i, 2)
       end do  
       close(unit_number)
 
-      ! write dep.dat
-      open(unit=unit_number, file=trim(file_dir)// 'result/dep.dat', status='replace', action='write')
+      ! write casename_dep.dat
+      open(unit=unit_number, file=trim(file_dir)// 'result/'//trim(casename)//'_dep.dat', status='replace', action='write')
       write(unit_number, '(A, I0)') 'Node Number = ', ustr_bounds - 1
       do i = 2, ustr_bounds, 1
-         write(unit_number, '(3(1X, F0.6))') ustr_vertex(i, 1), ustr_vertex(i, 2), 0.0
+         write(unit_number, '(F0.6, 2(1X, F0.6))') ustr_vertex(i, 1), ustr_vertex(i, 2), -99999.9
       end do   
       close(unit_number)
 
-      ! write grd.dat
-      open(unit=unit_number, file=trim(file_dir)// 'result/grd.dat', status='replace', action='write')
+      ! write casename_grd.dat
+      open(unit=unit_number, file=trim(file_dir)// 'result/'//trim(casename)//'_grd.dat', status='replace', action='write')
       write(unit_number, '(A, I0)') 'Node Number = ', ustr_bounds - 1
       write(unit_number, '(A, I0)') 'Cell Number = ', ustr_points - 1
       do i = 2, ustr_points, 1
-         write(unit_number, '(4(1X, I0))') i - 1, &
-                              ustr_ngr_center(1, i) - 1, &
-                              ustr_ngr_center(2, i) - 1, &
-                              ustr_ngr_center(3, i) - 1
+         write(unit_number, '(I0, 3(1X, I0))') i - 1, &
+                           ustr_ngr_center(1, i) - 1, &
+                           ustr_ngr_center(2, i) - 1, &
+                           ustr_ngr_center(3, i) - 1
       end do
+      do i = 2, ustr_bounds, 1
+         write(unit_number, '(I0, 2(1X, F0.6))') i - 1, &
+                           ustr_vertex(i, 1), &
+                           ustr_vertex(i, 2)
+      end do
+      close(unit_number)
+
+      ! write casename_obc.dat
+      open(unit=unit_number, file=trim(file_dir)// 'result/'//trim(casename)//'_obc.dat', status='replace', action='write')
+      write(unit_number, '(A, I0)') 'OBC Node Number = ', 0
+      close(unit_number)
+
+      ! write casename_spg.dat
+      open(unit=unit_number, file=trim(file_dir)// 'result/'//trim(casename)//'_spg.dat', status='replace', action='write')
+      write(unit_number, '(A, I0)') 'Sponge Node Number = ', 0
+      close(unit_number)
+
+      ! write casename_sigma.dat
+      open(unit=unit_number, file=trim(file_dir)// 'result/'//trim(casename)//'_sigma.dat', status='replace', action='write')
+      write(unit_number, '(A, I0)') 'NUMBER OF SIGMA LEVELS = 21'
+      write(unit_number, '(A, I0)') 'SIGMA COORDINATE TYPE = GEOMETRIC'
+      write(unit_number, '(A, I0)') 'SIGMA POWER = 2.0'
       close(unit_number)
 
    END SUBROUTINE FVCOM_Mesh_Save

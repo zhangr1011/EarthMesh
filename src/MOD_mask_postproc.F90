@@ -981,7 +981,11 @@ module MOD_mask_postproc
 
         ! 处理开边界问题(目前之后针对三角形的情况，针对六边形的情况还需要进一步处理)
         if (mode_grid == 'tri') then
-            if (output_format == 'FVCOM') CALL FVCOM_Mesh_Save(ustr_points_f, ustr_bounds_f, ustr_vertex_f, ustr_ngr_center_f)
+            if (output_format == 'FVCOM') then
+                ! 需要先对ustr_ngr_center_f调整，确保数据是逆时针存储
+                CALL sort_NV(ustr_points_f, ustr_vertex_f, ustr_ngr_center_f)
+                CALL FVCOM_Mesh_Save(ustr_points_f, ustr_bounds_f, ustr_vertex_f, ustr_ngr_center_f)
+            end if
         end if       
 
     END SUBROUTINE mask_postproc_Ocn
@@ -1547,6 +1551,104 @@ module MOD_mask_postproc
         write(io6, *)  "nvertices = ", nvertices
 
     END SUBROUTINE extract_unique_vertices
+
+
+    ! 确保NV数组是逆时针排序
+    SUBROUTINE sort_NV(ustr_points, ustr_vertex, ustr_ngr_center)
+        
+        implicit none
+        integer, intent(in) :: ustr_points
+        real(r8), allocatable, intent(in) :: ustr_vertex(:, :)
+        integer,  allocatable, intent(inout) :: ustr_ngr_center(:, :)
+        integer, allocatable :: ustr_ngr_center_tmp(:, :), cross_all(:)
+        integer  :: i, j, NV(3), NV_TMP(3)
+        real(r8) :: aa(3), bb(3), v1(2), v2(2), cross_val
+
+        allocate(cross_all(ustr_points))
+        cross_all(1) = 1
+
+        aa = 0.0_r8
+        do i = 2, ustr_points
+            NV = ustr_ngr_center(1:3,i)
+            aa = ustr_vertex(NV, 1)
+            bb = ustr_vertex(NV, 2)
+
+            v1(1) = aa(2) - aa(1)
+            v1(2) = bb(2) - bb(1)
+            v2(1) = aa(3) - aa(1)
+            v2(2) = bb(3) - bb(1)
+            cross_val = v1(1)*v2(2) - v1(2)*v2(1)
+            if (cross_val > 0.0_r8) then ! 说明就是逆时针，无需调整
+                cross_all(i) = 1
+            else
+                cross_all(i) = 0
+            end if
+        end do
+
+        if (sum(cross_all)-ustr_points < 0) then
+            print*, "NV need to modify!"
+            allocate(ustr_ngr_center_tmp(3,ustr_points))
+            ustr_ngr_center_tmp = ustr_ngr_center
+
+            do i = 2, ustr_points
+                if (cross_all(i) == 1) cycle
+
+                NV = ustr_ngr_center_tmp(1:3,i)
+                do j = 1, 5
+                    if (j == 1) then
+                        NV_TMP(1) = NV(1)
+                        NV_TMP(2) = NV(3)
+                        NV_TMP(3) = NV(2)
+                    else if (j == 2) then
+                        NV_TMP(1) = NV(2)
+                        NV_TMP(2) = NV(3)
+                        NV_TMP(3) = NV(1)
+                    else if (j == 3) then
+                        NV_TMP(1) = NV(3)
+                        NV_TMP(2) = NV(1)
+                        NV_TMP(3) = NV(2)
+                    else if (j == 4) then
+                        NV_TMP(1) = NV(3)
+                        NV_TMP(2) = NV(1)
+                        NV_TMP(3) = NV(2)
+                    else if (j == 5) then
+                        NV_TMP(1) = NV(3)
+                        NV_TMP(2) = NV(2)
+                        NV_TMP(3) = NV(1)
+                    end if
+
+                    aa = ustr_vertex(NV_TMP, 1)
+                    bb = ustr_vertex(NV_TMP, 2)
+
+                    v1(1) = aa(2) - aa(1)
+                    v1(2) = bb(2) - bb(1)
+                    v2(1) = aa(3) - aa(1)
+                    v2(2) = bb(3) - bb(1)
+                    cross_val = v1(1)*v2(2) - v1(2)*v2(1)
+                    if (cross_val > 0.0_r8) then
+                        cross_all(i) = 1
+                        ustr_ngr_center_tmp(1:3,i) = NV_TMP
+                        exit
+                    end if
+                end do
+
+                if (cross_all(i) == 0) then
+                    print*, "ERROR! NV must be counter-clockwise!"
+                    print*, "NV_TMP = ", NV_TMP
+                    STOP
+                end if
+            end do
+
+            print*, "NV modify finish!"
+            ustr_ngr_center = ustr_ngr_center_tmp
+            deallocate(ustr_ngr_center_tmp)
+        else
+            print*, "NV no need to modify!"
+        end if
+
+        deallocate(cross_all)
+
+    END SUBROUTINE sort_NV
 
     ! 排序并重新编号顶点的子程序
     SUBROUTINE sort_and_reindex(unique_vertices, nvertices, sorted_vertices, vertex_mapping)

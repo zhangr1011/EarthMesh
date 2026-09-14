@@ -39,7 +39,7 @@ contains
 
         !----------------------------------------------------------
         ! read from namelist
-        expnme               = nl%expnme
+        casename               = nl%casename
         nxp                  = nl%nxp
         case_dir             = nl%case_dir
         landtype_file        = nl%landtype_file
@@ -62,7 +62,7 @@ contains
         mask_patch_fprefix   = nl%mask_patch_fprefix
         mask_sea_ratio       = nl%mask_sea_ratio 
         
-        file_dir             = trim(case_dir) // trim(expnme) // '/'
+        file_dir             = trim(case_dir) // trim(casename) // '/'
        
         write(io6, *)  "gridnum_perdegree = ", gridnum_perdegree
         if (gridnum_perdegree == 240) then

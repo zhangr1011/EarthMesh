@@ -84,7 +84,7 @@ Module consts_coms
     integer, parameter :: maxremote = 30   ! Max # of remote send/recv processes
     integer, parameter :: pathlen = 256  ! Max length of character strings for file paths
 
-    character(64) :: expnme
+    character(64) :: casename
     character(pathlen) :: case_dir
     character(pathlen) :: file_dir
     character(pathlen) :: mode_file
@@ -126,7 +126,7 @@ Module consts_coms
 
     Type oname_vars
         !!    RUNTYPE/NAME
-        character(64) :: expnme = '/tmp'
+        character(64) :: casename = '/tmp'
         integer :: nxp = 0
         character(pathlen) :: case_dir = ' /tmp'
         character(16) :: mesh_type = '/tmp'
